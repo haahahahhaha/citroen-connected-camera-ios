@@ -1,43 +1,43 @@
 name: Build IPA
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: macos-15
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps:
-- name: Checkout
-uses: actions/checkout@v4
+      - name: Install Mint
+        run: brew install mint
 
-- name: Install Mint
-run: brew install mint
+      - name: Bootstrap project
+        run: ./scripts/bootstrap.sh
 
-- name: Bootstrap project
-run: ./scripts/bootstrap.sh
+      - name: Build unsigned app
+        run: |
+          xcodebuild \
+            -project CitroenConnectedCamera.xcodeproj \
+            -scheme Development \
+            -configuration Development \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build \
+            CONFIGURATION_BUILD_DIR="$PWD/build/App"
 
-- name: Build unsigned archive
-run: |
-xcodebuild archive \
--project CitroenConnectedCamera.xcodeproj \
--scheme Development \
--configuration Development \
--sdk iphoneos \
--destination "generic/platform=iOS" \
--archivePath "$PWD/build/CitroenConnectedCamera.xcarchive" \
-CODE_SIGNING_ALLOWED=NO \
-CODE_SIGNING_REQUIRED=NO
+      - name: Create IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/App/CitroenConnectedCamera.app build/Payload/
+          cd build
+          zip -r CitroenConnectedCamera-unsigned.ipa Payload
 
-- name: Create IPA
-run: |
-mkdir -p build/Payload
-cp -R "build/CitroenConnectedCamera.xcarchive/Products/Applications/CitroenConnectedCamera.app" build/Payload/
-cd build
-zip -r CitroenConnectedCamera-unsigned.ipa Payload
-
-- name: Upload IPA
-uses: actions/upload-artifact@v4
-with:
-name: CitroenConnectedCamera-unsigned
-path: build/CitroenConnectedCamera-unsigned.ipa
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: CitroenConnectedCamera-unsigned
+          path: build/CitroenConnectedCamera-unsigned.ipa
